@@ -22,9 +22,10 @@ class JwtService {
         Keys.hmacShaKeyFor(jwtSecret.toByteArray())
     }
 
-    fun generateToken(username: String): String {
+    fun generateToken(username: String, userId: String): String {
         return Jwts.builder()
             .setSubject(username)
+            .claim("userId", userId)
             .setExpiration(Date(System.currentTimeMillis() + expiration * 1000))
             .signWith(secretKey)
             .compact()

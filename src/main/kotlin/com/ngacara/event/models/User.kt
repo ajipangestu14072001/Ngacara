@@ -24,7 +24,10 @@ data class User(
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    val role: Role = Role.USER
+    val role: Role = Role.USER,
+
+    @Column(nullable = false, unique = true)
+    val phoneNumber: String
 )
 
 enum class Role {

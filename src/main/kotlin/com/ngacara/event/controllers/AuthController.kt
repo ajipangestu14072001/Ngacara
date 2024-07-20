@@ -1,18 +1,18 @@
 package com.ngacara.event.controllers
 
 import com.ngacara.event.config.JwtService
-import com.ngacara.event.models.ApiResponse
-import com.ngacara.event.models.JwtResponse
-import com.ngacara.event.models.UserLoginDto
-import com.ngacara.event.models.UserRegistrationDto
+import com.ngacara.event.helper.createApiResponse
+import com.ngacara.event.models.*
 import com.ngacara.event.services.UserService
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.web.bind.annotation.*
+import java.util.*
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,12 +23,12 @@ class AuthController(
 ) {
 
     @PostMapping("/register")
-    fun register(@Valid @RequestBody userRegistrationDto: UserRegistrationDto): ResponseEntity<ApiResponse<Nothing>> {
+    fun register(@Valid @RequestBody userRegistrationDto: UserRegistrationDto): ResponseEntity<ApiResponse<UserRegistrationDto>> {
         userService.register(userRegistrationDto)
-        val response = ApiResponse(
-            statusCode = 200,
+        val response = createApiResponse(
+            statusCode = HttpStatus.OK.value(),
             message = "User registered successfully",
-            data = null
+            data = userRegistrationDto
         )
         return ResponseEntity.ok(response)
     }
@@ -46,34 +46,87 @@ class AuthController(
                 )
             )
 
-            val token = jwtService.generateToken(user.username)
-            val response = ApiResponse(
-                statusCode = 200,
+            val token = jwtService.generateToken(user.username, user.id.toString())
+            val response = createApiResponse(
+                statusCode = HttpStatus.OK.value(),
                 message = "Login successful",
-                data = JwtResponse(token)
+                data = JwtResponse(token = token, userId = user.id.toString())
             )
             ResponseEntity.ok(response)
         } catch (e: AuthenticationException) {
-            val response = ApiResponse<JwtResponse>(
-                statusCode = 401,
-                message = "Invalid username or password",
-                data = null
+            val errorResponse = JwtResponse(error = "Login failed: ${e.message}")
+            val response = createApiResponse(
+                statusCode = HttpStatus.NOT_FOUND.value(),
+                message = "Login failed",
+                data = errorResponse
             )
-            ResponseEntity.status(401).body(response)
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
+        } catch (e: UsernameNotFoundException) {
+            val errorResponse = JwtResponse(error = "Login failed: ${e.message}")
+            val response = createApiResponse(
+                statusCode = HttpStatus.NOT_FOUND.value(),
+                message = "Invalid username or password",
+                data = errorResponse
+            )
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
         }
     }
 
     @PostMapping("/logout")
     fun logout(@RequestHeader("Authorization") token: String): ResponseEntity<ApiResponse<Nothing>> {
-        val jwtToken = token.removePrefix("Bearer ")
+        val jwtToken = token.removePrefix(prefix = "Bearer ")
         jwtService.blacklistToken(jwtToken)
-        val response = ApiResponse(
-            statusCode = 200,
+        val response = createApiResponse(
+            statusCode = HttpStatus.OK.value(),
             message = "Logged out successfully",
             data = null
         )
         return ResponseEntity.ok(response)
     }
+
+    @PutMapping("/update/{userId}")
+    fun updateUser(
+        @PathVariable userId: UUID,
+        @Valid @RequestBody updateDto: UserRegistrationDto
+    ): ResponseEntity<ApiResponse<UserRegistrationDto>> {
+        return try {
+            userService.updateUser(userId, updateDto)
+            val response = createApiResponse(
+                statusCode = HttpStatus.OK.value(),
+                message = "User updated successfully",
+                data = updateDto
+            )
+            ResponseEntity.ok(response)
+        } catch (e: IllegalArgumentException) {
+            val response = createApiResponse(
+                statusCode = HttpStatus.BAD_REQUEST.value(),
+                message = e.message ?: "No changes detected",
+                data = updateDto
+            )
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
+        }
+    }
+
+    @DeleteMapping("/delete/{userId}")
+    fun deleteUser(@PathVariable userId: UUID): ResponseEntity<ApiResponse<Map<String, String>>> {
+        userService.deleteUser(userId)
+        val response = createApiResponse(
+            statusCode = HttpStatus.OK.value(),
+            message = "User deleted successfully",
+            data = mapOf("deletedUserId" to userId.toString())
+        )
+        return ResponseEntity.ok(response)
+    }
+
+    @GetMapping("/detail_user/{userId}")
+    fun findUserById(@PathVariable userId: UUID): ResponseEntity<ApiResponse<User>> {
+        val user = userService.findById(userId)
+         val response = createApiResponse(
+                statusCode = HttpStatus.OK.value(),
+                message = "User found",
+                data = user
+            )
+         return   ResponseEntity.ok(response)
+    }
+
 }
-
-
