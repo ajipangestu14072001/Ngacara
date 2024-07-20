@@ -58,7 +58,7 @@ class UserService(
 
     fun findById(userId: UUID): User {
         return userRepository.findById(userId).orElseThrow {
-            UsernameNotFoundException("User with ID $userId not found")
+            throw UsernameNotFoundException("User not found")
         }
     }
 

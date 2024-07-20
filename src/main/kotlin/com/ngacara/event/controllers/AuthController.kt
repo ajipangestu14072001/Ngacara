@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -35,7 +34,6 @@ class AuthController(
 
     @PostMapping("/login")
     fun login(@Valid @RequestBody userLoginDto: UserLoginDto): ResponseEntity<ApiResponse<JwtResponse>> {
-        return try {
             val usernameOrEmail = userLoginDto.usernameOrEmail
             val user = userService.findByUsernameOrEmail(usernameOrEmail)
                 ?: throw UsernameNotFoundException("Invalid username or email")
@@ -52,24 +50,7 @@ class AuthController(
                 message = "Login successful",
                 data = JwtResponse(token = token, userId = user.id.toString())
             )
-            ResponseEntity.ok(response)
-        } catch (e: AuthenticationException) {
-            val errorResponse = JwtResponse(error = "Login failed: ${e.message}")
-            val response = createApiResponse(
-                statusCode = HttpStatus.NOT_FOUND.value(),
-                message = "Login failed",
-                data = errorResponse
-            )
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
-        } catch (e: UsernameNotFoundException) {
-            val errorResponse = JwtResponse(error = "Login failed: ${e.message}")
-            val response = createApiResponse(
-                statusCode = HttpStatus.NOT_FOUND.value(),
-                message = "Invalid username or password",
-                data = errorResponse
-            )
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
-        }
+         return ResponseEntity.ok(response)
     }
 
     @PostMapping("/logout")
@@ -108,12 +89,12 @@ class AuthController(
     }
 
     @DeleteMapping("/delete/{userId}")
-    fun deleteUser(@PathVariable userId: UUID): ResponseEntity<ApiResponse<Map<String, String>>> {
+    fun deleteUser(@PathVariable userId: UUID): ResponseEntity<ApiResponse<Nothing>> {
         userService.deleteUser(userId)
         val response = createApiResponse(
             statusCode = HttpStatus.OK.value(),
             message = "User deleted successfully",
-            data = mapOf("deletedUserId" to userId.toString())
+            data = null
         )
         return ResponseEntity.ok(response)
     }

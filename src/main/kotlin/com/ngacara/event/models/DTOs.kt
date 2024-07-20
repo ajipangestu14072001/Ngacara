@@ -3,7 +3,6 @@ package com.ngacara.event.models
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Pattern
-import java.util.*
 
 data class UserRegistrationDto(
     @field:NotEmpty(message = "Username cannot be empty")
@@ -30,17 +29,11 @@ data class UserLoginDto(
 
 data class JwtResponse(
     val token: String? = "",
-    val userId: String? = "",
-    val error: String? = ""
+    val userId: String? = ""
 )
 
 data class ApiResponse<T>(
     val statusCode: Int,
     val message: String,
     val data: T? = null
-)
-
-data class ErrorDetails(
-    val error: String,
-    val details: String?
 )
