@@ -22,15 +22,22 @@ class AuthController(
 ) {
 
     @PostMapping("/register")
-    fun register(@Valid @RequestBody userRegistrationDto: UserRegistrationDto): ResponseEntity<ApiResponse<UserRegistrationDto>> {
-        userService.register(userRegistrationDto)
+    fun register(@Valid @RequestBody userRegistrationDto: UserRegistrationDto): ResponseEntity<ApiResponse<UserResponseDto>> {
+        val registeredUser = userService.register(userRegistrationDto)
+        val userResponseDto = UserResponseDto(
+            username = registeredUser.username,
+            email = registeredUser.email,
+            photoPath = registeredUser.photoPath,
+            phoneNumber = registeredUser.phoneNumber
+        )
         val response = createApiResponse(
             statusCode = HttpStatus.OK.value(),
             message = "User registered successfully",
-            data = userRegistrationDto
+            data = userResponseDto
         )
         return ResponseEntity.ok(response)
     }
+
 
     @PostMapping("/login")
     fun login(@Valid @RequestBody userLoginDto: UserLoginDto): ResponseEntity<ApiResponse<JwtResponse>> {
