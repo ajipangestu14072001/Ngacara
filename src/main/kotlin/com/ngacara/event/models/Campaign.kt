@@ -1,6 +1,7 @@
 package com.ngacara.event.models
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 import java.util.*
 
 @Entity
@@ -24,6 +25,9 @@ data class Campaign(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
-    val createdBy: User
+    val createdBy: User,
+
+    @Column(nullable = false, updatable = false)
+    val createdAt: LocalDateTime = LocalDateTime.now()
 )
 

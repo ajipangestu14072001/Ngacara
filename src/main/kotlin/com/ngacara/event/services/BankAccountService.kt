@@ -1,32 +1,54 @@
 package com.ngacara.event.services
 
+import com.ngacara.event.helper.ResourceNotFoundException
 import com.ngacara.event.models.*
 import com.ngacara.event.repository.BankAccountRepository
 import com.ngacara.event.repository.CampaignRepository
 import com.ngacara.event.repository.DonorRepository
+import com.ngacara.event.repository.UserRepository
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
+import java.util.*
 
 @Service
 class BankAccountService(
     private val bankAccountRepository: BankAccountRepository,
     private val donorRepository: DonorRepository,
-    private val campaignRepository: CampaignRepository
+    private val campaignRepository: CampaignRepository,
+    private val userRepository: UserRepository
 ) {
-    fun addBankAccount(bankAccountDto: BankAccountDto): BankAccountResponseDto {
-        val donor: Donor? = if (bankAccountDto.accountType == AccountType.DONOR) {
-            bankAccountDto.donorId?.let {
-                donorRepository.findById(it).orElse(null)
-            }
-        } else {
-            null
+    private fun validateExistence(
+        accountType: AccountType,
+        donorId: UUID?,
+        campaignId: UUID?
+    ) {
+        if (accountType == AccountType.DONOR && (donorId == null || !donorRepository.existsById(donorId))) {
+            throw ResourceNotFoundException("Donor dengan ID $donorId tidak ditemukan")
         }
 
-        val campaign: Campaign? = if (bankAccountDto.accountType == AccountType.CAMPAIGN) {
-            bankAccountDto.campaignId?.let {
-                campaignRepository.findById(it).orElse(null)
+        if (accountType == AccountType.CAMPAIGN && (campaignId == null || !campaignRepository.existsById(campaignId))) {
+            throw ResourceNotFoundException("Kampanye dengan ID $campaignId tidak ditemukan")
+        }
+    }
+
+    private fun getAssociatedEntity(
+        accountType: AccountType,
+        donorId: UUID?,
+        campaignId: UUID?
+    ): Pair<Donor?, Campaign?> {
+        val donor = if (accountType == AccountType.DONOR) donorId?.let { donorRepository.findById(it).orElse(null) } else null
+        val campaign = if (accountType == AccountType.CAMPAIGN) campaignId?.let { campaignRepository.findById(it).orElse(null) } else null
+        return Pair(donor, campaign)
+    }
+
+    fun addBankAccount(bankAccountDto: BankAccountDto): BankAccountResponseDto {
+        validateExistence(bankAccountDto.accountType, bankAccountDto.donorId, bankAccountDto.campaignId)
+        val (donor, campaign) = getAssociatedEntity(bankAccountDto.accountType, bankAccountDto.donorId, bankAccountDto.campaignId)
+
+        donor?.let {
+            if (it.bankAccount != null) {
+                throw IllegalArgumentException("Donor dengan ID ${it.id} sudah memiliki akun bank")
             }
-        } else {
-            null
         }
 
         val bankAccount = BankAccount(
@@ -39,20 +61,31 @@ class BankAccountService(
             donor = donor,
             campaign = campaign
         )
-        bankAccountRepository.save(bankAccount)
+        val savedBankAccount = bankAccountRepository.save(bankAccount)
+
+        donor?.let {
+            val updatedDonor = it.copy(bankAccount = savedBankAccount)
+            donorRepository.save(updatedDonor)
+            updateUserBankAccountId(it.user.id!!, savedBankAccount.id!!)
+        }
 
         return BankAccountResponseDto(
-            id = bankAccount.id!!,
-            accountHolderName = bankAccount.accountHolderName,
-            bankName = bankAccount.bankName,
-            accountNumber = bankAccount.accountNumber,
-            swiftCode = bankAccount.swiftCode,
-            accountType = bankAccount.accountType,
-            iconBank = bankAccount.iconBank,
+            id = savedBankAccount.id!!,
+            accountHolderName = savedBankAccount.accountHolderName,
+            bankName = savedBankAccount.bankName,
+            accountNumber = savedBankAccount.accountNumber,
+            swiftCode = savedBankAccount.swiftCode,
+            accountType = savedBankAccount.accountType,
+            iconBank = savedBankAccount.iconBank,
             donorId = donor?.id,
             campaignId = campaign?.id
         )
     }
+
+    private fun updateUserBankAccountId(userId: UUID, bankAccountId: UUID) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { UsernameNotFoundException("User dengan ID $userId tidak ditemukan") }
+        user.bankAccountId = bankAccountId
+        userRepository.save(user)
+    }
 }
-
-

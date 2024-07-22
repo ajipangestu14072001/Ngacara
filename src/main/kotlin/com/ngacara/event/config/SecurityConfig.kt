@@ -2,7 +2,6 @@ package com.ngacara.event.config
 
 import com.ngacara.event.helper.CustomAuthenticationEntryPoint
 import com.ngacara.event.services.CustomUserDetailsService
-import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager

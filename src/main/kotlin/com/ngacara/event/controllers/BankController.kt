@@ -7,7 +7,6 @@ import com.ngacara.event.models.BankResponseDto
 import com.ngacara.event.models.PaginatedResponseDto
 import com.ngacara.event.services.BankService
 import jakarta.validation.Valid
-import org.springframework.data.domain.Page
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*

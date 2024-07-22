@@ -1,5 +1,6 @@
 package com.ngacara.event.services
 
+import com.ngacara.event.helper.ResourceNotFoundException
 import com.ngacara.event.helper.toPaginatedResponse
 import com.ngacara.event.models.*
 import com.ngacara.event.repository.CampaignRepository
@@ -22,19 +23,41 @@ class DonationService(
 ) {
 
     @Transactional
-    fun createDonor(donorDto: DonorDto): Donor {
+    fun createDonor(donorDto: DonorDto): DonorCreateResponseDto {
+        val user = userRepository.findById(donorDto.userId)
+            .orElseThrow { ResourceNotFoundException("Data not found") }
+
+        if (donorRepository.existsByEmailAndUserId(donorDto.email, donorDto.userId)) {
+            throw IllegalArgumentException("Donor dengan email ${donorDto.email} sudah ada untuk pengguna ini")
+        }
+        if (donorRepository.existsByPhoneNumberAndUserId(donorDto.phoneNumber, donorDto.userId)) {
+            throw IllegalArgumentException("Donor dengan nomor telepon ${donorDto.phoneNumber} sudah ada untuk pengguna ini")
+        }
         val donor = Donor(
             name = donorDto.name,
             email = donorDto.email,
-            phoneNumber = donorDto.phoneNumber
+            phoneNumber = donorDto.phoneNumber,
+            user = user
         )
-        return donorRepository.save(donor)
+        val savedDonor = donorRepository.save(donor)
+
+        return DonorCreateResponseDto(
+            name = savedDonor.name,
+            email = savedDonor.email,
+            phoneNumber = savedDonor.phoneNumber,
+            user = UserResponseDto(
+                username = savedDonor.user.username,
+                email = savedDonor.user.email,
+                photoPath = savedDonor.user.photoPath,
+                phoneNumber = savedDonor.user.phoneNumber,
+            )
+        )
     }
 
     @Transactional
     fun createCampaign(campaignDto: CampaignDto): Campaign {
         val user = userRepository.findById(campaignDto.createdByUserId)
-            .orElseThrow { IllegalArgumentException("User not found") }
+            .orElseThrow { UsernameNotFoundException("User not found") }
         val campaign = Campaign(
             name = campaignDto.name,
             description = campaignDto.description,
@@ -48,11 +71,11 @@ class DonationService(
     @Transactional
     fun createDonation(donationDto: DonationDto): DonationResponseDto {
         val donor = donorRepository.findById(donationDto.donorId)
-            .orElseThrow { IllegalArgumentException("Donor not found") }
+            .orElseThrow { ResourceNotFoundException("Donor not found") }
         val campaign = campaignRepository.findById(donationDto.campaignId)
-            .orElseThrow { IllegalArgumentException("Campaign not found") }
+            .orElseThrow { ResourceNotFoundException("Campaign not found") }
         val user = userRepository.findById(donationDto.userId)
-            .orElseThrow { IllegalArgumentException("User not found") }
+            .orElseThrow { UsernameNotFoundException("User not found") }
 
         val donation = Donation(
             donor = donor,
@@ -160,6 +183,20 @@ class DonationService(
         return toCampaignResponseDto(campaign)
     }
 
+    fun getDonorById(donorId: UUID): DonorResponseDto {
+        val donor = donorRepository.findById(donorId)
+            .orElseThrow {
+                throw ResourceNotFoundException("Data not found")
+            }
+
+        return DonorResponseDto(
+            name = donor.name,
+            email = donor.email,
+            phoneNumber = donor.phoneNumber,
+            bankAccount = donor.bankAccount?.id
+        )
+    }
+
     private fun toCampaignResponseDto(campaign: Campaign): CampaignResponseDto {
         return CampaignResponseDto(
             id = campaign.id!!,
@@ -175,6 +212,5 @@ class DonationService(
             )
         )
     }
-
 }
 

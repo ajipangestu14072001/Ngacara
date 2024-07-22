@@ -16,7 +16,7 @@ class DonationController(
 ) {
 
     @PostMapping("/donors")
-    fun createDonor(@Valid @RequestBody donorDto: DonorDto): ResponseEntity<ApiResponse<Donor>> {
+    fun createDonor(@Valid @RequestBody donorDto: DonorDto): ResponseEntity<ApiResponse<DonorCreateResponseDto>> {
         val donor = donationService.createDonor(donorDto)
         val response = createApiResponse(
             statusCode = HttpStatus.OK.value(),
@@ -101,6 +101,17 @@ class DonationController(
             statusCode = HttpStatus.OK.value(),
             message = "Campaign retrieved successfully",
             data = campaign
+        )
+        return ResponseEntity.ok(response)
+    }
+
+    @GetMapping("/donors/{donorId}")
+    fun getDonorById(@PathVariable donorId: UUID): ResponseEntity<ApiResponse<DonorResponseDto>> {
+        val donorResponseDto = donationService.getDonorById(donorId)
+        val response = createApiResponse(
+            statusCode = HttpStatus.OK.value(),
+            message = "Donor retrieved successfully",
+            data = donorResponseDto
         )
         return ResponseEntity.ok(response)
     }

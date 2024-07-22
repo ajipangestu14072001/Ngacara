@@ -97,7 +97,8 @@ data class DonationDto(
 data class DonorResponseDto(
     val name: String,
     val email: String,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val bankAccount: UUID? = null,
 )
 
 data class DonationResponseDto(
@@ -107,8 +108,14 @@ data class DonationResponseDto(
     val amount: Double
 )
 
+data class DonorCreateResponseDto(
+    val name: String,
+    val email: String,
+    val phoneNumber: String,
+    val user: UserResponseDto
+)
+
 data class BankAccountDto(
-    val id: UUID,
     val accountHolderName: String,
     val bankName: String,
     val accountNumber: String,
@@ -155,6 +162,9 @@ data class DonorDto(
     val email: String,
     @field:NotEmpty(message = "Phone number cannot be empty")
     @field:Pattern(regexp = "^\\+62[0-9]{9,15}$", message = "Phone number should be valid and start with +62")
-    val phoneNumber: String
+    val phoneNumber: String,
+    @field:NotNull(message = "User ID cannot be null")
+    val userId: UUID
 )
+
 

@@ -30,7 +30,10 @@ data class User(
     val phoneNumber: String,
 
     @Column(nullable = false)
-    var totalDonated: Double = 0.0
+    var totalDonated: Double = 0.0,
+
+    @Column
+    var bankAccountId: UUID? = null,
 )
 
 enum class Role {

@@ -35,7 +35,8 @@ data class BankAccount(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id")
-    val campaign: Campaign? = null
+    val campaign: Campaign? = null,
+
 )
 
 enum class AccountType {
